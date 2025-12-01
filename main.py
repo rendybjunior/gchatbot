@@ -24,9 +24,23 @@ async def handle_chat_event(request: Request):
     # Create the reply using the requested template
     reply_text = f"your message : {user_message} (email: {user_email})"
     
-    response = JSONResponse(content={"text": reply_text})
+    response = build_response(reply_text)
     logger.info(f"Sending response: {response}")
     return response
+
+def build_response(text):
+    response ={
+        "hostAppDataAction": {
+            "chatDataAction": {
+            "createMessageAction": {
+                "message": {
+                "text": text
+                }
+            }
+            }
+        }
+    }
+    return JSONResponse(content=response)
 
 if __name__ == "__main__":
     import uvicorn
