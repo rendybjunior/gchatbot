@@ -1,14 +1,10 @@
-from fastapi import FastAPI, Request, HTTPException, Header
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from dotenv import load_dotenv
 import logging
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Load environment variables
-load_dotenv()
 
 app = FastAPI()
 
