@@ -1,4 +1,4 @@
-# Google Chatbot (FastAPI)
+# Google Chat App
 
 This is a simple Google Chat App. It handles Google Chat message and replies to the user.
 I put this on github public as [the documentation](https://developers.google.com/workspace/add-ons/chat/quickstart-http?hl=en) is confusing.
