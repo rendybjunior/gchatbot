@@ -31,12 +31,12 @@ async def handle_chat_event(request: Request):
 
 
 @app.get("/health")
-def health_check():
+async def health_check(request: Request):
     return {"status": "ok"}
 
 
 @app.get("/databot")
-def handle_databot_event():
+async def handle_databot_event(request: Request):
     event = await request.json()
     logger.info(f"Received event: {event}")
 
@@ -54,7 +54,7 @@ def handle_databot_event():
 
 
 @app.get("/peoplebot")
-def handle_peoplebot_event():
+async def handle_peoplebot_event(request: Request):
     event = await request.json()
     logger.info(f"Received event: {event}")
 
