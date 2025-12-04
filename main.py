@@ -54,8 +54,6 @@ def validate_chat_request(event_data: dict) -> bool:
             logger.error(f"Error: Invalid issuer. Expected '{CHAT_ISSUER}', got '{id_info.get('iss')}'")
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        logger.info("Request Integrity Check: PASSED (Token validated)")
-
     except Exception as e:
         # This block catches all JWT validation failures (e.g., bad signature, expired, wrong audience)
         logger.error(f"Request Integrity Check: FAILED. JWT verification failed: {e}")
@@ -90,7 +88,7 @@ async def handle_databot_event(request: Request):
     reply_text = f"DATABOT message : {user_message} (email: {user_email})"
 
     response = build_response(reply_text)
-    logger.info(f"Sending response: {response}")
+    logger.debug(f"Sending response: {response}")
     return response
 
 
@@ -102,7 +100,7 @@ async def handle_peoplebot_event(request: Request):
     reply_text = f"Boleh."
 
     response = build_response(reply_text)
-    logger.info(f"Sending response: {response}")
+    logger.debug(f"Sending response: {response}")
     return response
 
 
