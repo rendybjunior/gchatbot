@@ -62,17 +62,12 @@ def validate_chat_request(event_data: dict) -> bool:
         raise HTTPException(status_code=401, detail="Unauthorized")
         
     # --- 2. Company Domain Validation ---
-    try:
-        user_domain_id = event_data['chat']['user']['domainId']
-    except KeyError:
-        logger.error("Error: Missing user domainId.")
-        raise HTTPException(status_code=401, detail="Unauthorized")
-        
+    user_domain_id = event_data.get('chat', {}).get('user', {}).get('domainId')
     if user_domain_id != WORKSPACE_DOMAIN_ID:
         logger.error(f"Unauthorized user domainId: {user_domain_id}")
         raise HTTPException(status_code=401, detail="Unauthorized")
     
-    user_email = event.get("chat", {}).get("user", {}).get("email", "unknown email")
+    user_email = event_data.get("chat", {}).get("user", {}).get("email", "unknown email")
     user_email_domain = user_email.split("@")[1]
     if user_email_domain != EMAIL_DOMAIN_ID:
         logger.error(f"Unauthorized user email domain: {user_email_domain}")
