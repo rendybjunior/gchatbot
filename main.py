@@ -35,7 +35,7 @@ async def health_check(request: Request):
     return {"status": "ok"}
 
 
-@app.get("/databot")
+@app.post("/databot")
 async def handle_databot_event(request: Request):
     event = await request.json()
     logger.info(f"Received event: {event}")
@@ -53,7 +53,7 @@ async def handle_databot_event(request: Request):
     return response
 
 
-@app.get("/peoplebot")
+@app.post("/peoplebot")
 async def handle_peoplebot_event(request: Request):
     event = await request.json()
     logger.info(f"Received event: {event}")
