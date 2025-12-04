@@ -38,11 +38,12 @@ async def handle_chat_event(request: Request):
 
 # Replace this with your endpoint URL (must match what you set in Chat App config)
 EXPECTED_AUDIENCE = os.getenv("EXPECTED_AUDIENCE")
+logger.info(f"Expected audience: {EXPECTED_AUDIENCE}")
 
 def validate_request(request: Request):
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(status_code=401, detail="Unauthorized1")
 
     token = auth_header.split(" ")[1]
 
@@ -54,12 +55,12 @@ def validate_request(request: Request):
             audience=EXPECTED_AUDIENCE
         )
     except Exception as e:
-        print("Token verification error:", e)
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        logger.error("Token verification error:", e)
+        raise HTTPException(status_code=401, detail="Unauthorized2")
 
     # Ensure that the token was issued by Google Chat
     if payload.get("email") != "chat@system.gserviceaccount.com":
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(status_code=401, detail="Unauthorized3")
 
 
 @app.get("/health")
