@@ -2,9 +2,9 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import logging
 import os
-from dotenv import load_dotenv
+from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
-from google.auth.transport import requests as grequests
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
@@ -15,54 +15,68 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+APP_ENDPOINT_URL = os.getenv("APP_ENDPOINT_URL")
+WORKSPACE_DOMAIN_ID = os.getenv("WORKSPACE_DOMAIN_ID") 
+EMAIL_DOMAIN_ID = os.getenv("EMAIL_DOMAIN_ID")
+CHAT_ISSUER = os.getenv("CHAT_ISSUER")
 
-@app.post("/")
+@app.get("/")
 async def handle_chat_event(request: Request):
+    return {"status": "ok"}
+
+
+def validate_chat_request(event_data: dict) -> bool:
     """
-    Handle incoming Google Chat events.
+    Performs two checks:
+    1. Validates the systemIdToken to ensure the request is from Google Chat.
+    2. Validates the domainId to ensure the user is from your company's Workspace.
     """
-    event = await request.json()
-    logger.info(f"Received event: {event}")
-
-    user_message = event.get("chat", {}).get("messagePayload", {}).get("message", {}).get("text", "")
     
-    # Extract user email
-    user_email = event.get("chat", {}).get("user", {}).get("email", "unknown email")
-    
-    # Create the reply using the requested template
-    reply_text = f"your message : {user_message} (email: {user_email})"
-    
-    response = build_response(reply_text)
-    logger.info(f"Sending response: {response}")
-    return response
-
-# Replace this with your endpoint URL (must match what you set in Chat App config)
-EXPECTED_AUDIENCE = os.getenv("EXPECTED_AUDIENCE")
-logger.info(f"Expected audience: {EXPECTED_AUDIENCE}")
-
-def validate_request(request: Request):
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        logger.error("auth_header", auth_header)
-        raise HTTPException(status_code=401, detail="Unauthorized1")
-
-    token = auth_header.split(" ")[1]
+    # --- 1. Request Integrity (JWT) Validation ---
+    try:
+        token = event_data['authorizationEventObject']['systemIdToken']
+    except KeyError:
+        logger.error("Error: Missing systemIdToken.")
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
     try:
-        # Verify the ID Token
-        payload = id_token.verify_oauth2_token(
-            token,
-            grequests.Request(),
-            audience=EXPECTED_AUDIENCE
+        # Use the google-auth library to verify the token.
+        # This automatically fetches Google's public keys, checks the signature,
+        # checks the expiration (exp), checks the audience (aud), and checks the issuer (iss).
+        id_info = id_token.verify_token(
+            token, 
+            google_requests.Request(),
+            audience=APP_ENDPOINT_URL
         )
-    except Exception as e:
-        logger.error("Token verification error:", e)
-        raise HTTPException(status_code=401, detail="Unauthorized2")
 
-    # Ensure that the token was issued by Google Chat
-    if payload.get("email") != "chat@system.gserviceaccount.com":
-        logger.error("payload", payload)
-        raise HTTPException(status_code=401, detail="Unauthorized3")
+        # Explicitly verify the issuer (iss)
+        if id_info.get('iss') != CHAT_ISSUER:
+            logger.error(f"Error: Invalid issuer. Expected '{CHAT_ISSUER}', got '{id_info.get('iss')}'")
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        logger.info("Request Integrity Check: PASSED (Token validated)")
+
+    except Exception as e:
+        # This block catches all JWT validation failures (e.g., bad signature, expired, wrong audience)
+        logger.error(f"Request Integrity Check: FAILED. JWT verification failed: {e}")
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    # --- 2. Company Domain Validation ---
+    try:
+        user_domain_id = event_data['chat']['user']['domainId']
+    except KeyError:
+        logger.error("Error: Missing user domainId.")
+        raise HTTPException(status_code=401, detail="Unauthorized")
+        
+    if user_domain_id != WORKSPACE_DOMAIN_ID:
+        logger.error(f"Unauthorized user domainId: {user_domain_id}")
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    user_email = event.get("chat", {}).get("user", {}).get("email", "unknown email")
+    user_email_domain = user_email.split("@")[1]
+    if user_email_domain != EMAIL_DOMAIN_ID:
+        logger.error(f"Unauthorized user email domain: {user_email_domain}")
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
 
 @app.get("/health")
@@ -73,14 +87,11 @@ async def health_check(request: Request):
 @app.post("/databot")
 async def handle_databot_event(request: Request):
     event = await request.json()
-    logger.info(f"Received event: {event}")
+    validate_chat_request(event)
 
     user_message = event.get("chat", {}).get("messagePayload", {}).get("message", {}).get("text", "")
-
-    # Extract user email
     user_email = event.get("chat", {}).get("user", {}).get("email", "unknown email")
 
-    # Create the reply using the requested template
     reply_text = f"DATABOT message : {user_message} (email: {user_email})"
 
     response = build_response(reply_text)
@@ -91,16 +102,8 @@ async def handle_databot_event(request: Request):
 @app.post("/peoplebot")
 async def handle_peoplebot_event(request: Request):
     event = await request.json()
-    logger.info(f"Received event: {event}")
+    validate_chat_request(event)
 
-    validate_request(request)
-
-    user_message = event.get("chat", {}).get("messagePayload", {}).get("message", {}).get("text", "")
-
-    # Extract user email
-    user_email = event.get("chat", {}).get("user", {}).get("email", "unknown email")
-
-    # Create the reply using the requested template
     reply_text = f"Boleh."
 
     response = build_response(reply_text)
