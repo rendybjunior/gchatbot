@@ -25,7 +25,7 @@ async def handle_chat_event(request: Request):
     return {"status": "ok"}
 
 
-def validate_chat_request(event_data: dict) -> bool:
+def validate_chat_request(event_data: dict, handle_name: str) -> bool:
     """
     Performs two checks:
     1. Validates the systemIdToken to ensure the request is from Google Chat.
@@ -46,7 +46,7 @@ def validate_chat_request(event_data: dict) -> bool:
         id_info = id_token.verify_token(
             token, 
             google_requests.Request(),
-            audience=APP_ENDPOINT_URL
+            audience=f"{APP_ENDPOINT_URL}/{handle_name}"
         )
 
         # Explicitly verify the issuer (iss)
@@ -80,7 +80,7 @@ async def health_check(request: Request):
 @app.post("/databot")
 async def handle_databot_event(request: Request):
     event = await request.json()
-    validate_chat_request(event)
+    validate_chat_request(event, "databot")
 
     user_message = event.get("chat", {}).get("messagePayload", {}).get("message", {}).get("text", "")
     user_email = event.get("chat", {}).get("user", {}).get("email", "unknown email")
@@ -95,7 +95,7 @@ async def handle_databot_event(request: Request):
 @app.post("/peoplebot")
 async def handle_peoplebot_event(request: Request):
     event = await request.json()
-    validate_chat_request(event)
+    validate_chat_request(event, "peoplebot")
 
     reply_text = f"Boleh."
 
