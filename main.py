@@ -64,7 +64,7 @@ async def handle_peoplebot_event(request: Request):
     user_email = event.get("chat", {}).get("user", {}).get("email", "unknown email")
 
     # Create the reply using the requested template
-    reply_text = f"PEOPLEBOT message : {user_message} (email: {user_email})"
+    reply_text = f"Boleh."
 
     response = build_response(reply_text)
     logger.info(f"Sending response: {response}")
