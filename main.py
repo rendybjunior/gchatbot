@@ -43,6 +43,7 @@ logger.info(f"Expected audience: {EXPECTED_AUDIENCE}")
 def validate_request(request: Request):
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
+        logger.error("auth_header", auth_header)
         raise HTTPException(status_code=401, detail="Unauthorized1")
 
     token = auth_header.split(" ")[1]
@@ -60,6 +61,7 @@ def validate_request(request: Request):
 
     # Ensure that the token was issued by Google Chat
     if payload.get("email") != "chat@system.gserviceaccount.com":
+        logger.error("payload", payload)
         raise HTTPException(status_code=401, detail="Unauthorized3")
 
 
@@ -88,10 +90,10 @@ async def handle_databot_event(request: Request):
 
 @app.post("/peoplebot")
 async def handle_peoplebot_event(request: Request):
-    validate_request(request)
-
     event = await request.json()
     logger.info(f"Received event: {event}")
+
+    validate_request(request)
 
     user_message = event.get("chat", {}).get("messagePayload", {}).get("message", {}).get("text", "")
 
