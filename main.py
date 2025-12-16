@@ -80,6 +80,7 @@ async def health_check(request: Request):
 @app.post("/databot")
 async def handle_databot_event(request: Request):
     event = await request.json()
+    logger.info(event)
     validate_chat_request(event, "databot")
 
     user_message = event.get("chat", {}).get("messagePayload", {}).get("message", {}).get("text", "")
